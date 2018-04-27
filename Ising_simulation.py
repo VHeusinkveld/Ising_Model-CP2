@@ -9,68 +9,90 @@ from sys import exit
 # -----------------------------------------------------------------------------------------------------------------------
 def IM_sim(self):
     
+    # Check input
+    input_check(self)
+    
+    # Initialization
+    grid_spins = assign_spin(self)
     grid_coordinates, spin_site_numbers = grid_init(self)
-  
-    # magnitization_total, T_total, h_total, energy_total = matrix_init(self)
+    magnitization, T_total, h_total, energy, chi, c_v, energy_i, magnitization_i = matrix_init(self)
     
-    magnitization = np.zeros([self.T_steps, 1])
-    T_total = np.zeros([self.T_steps, 1])
-    h_total = np.zeros([self.T_steps, 1])
-    energy = np.zeros([self.T_steps, 1])
-    khi = np.zeros([self.T_steps, 1])
-    
-    energy_i = np.zeros([self.MC_steps, 1])
-    magnitization_i = np.zeros([self.MC_steps, 1])
-    khi_i = np.zeros([self.MC_steps, 1])
-        
+    # Simulation 
     for j, temp in enumerate(range(self.T_steps)):
-        grid_spins = assign_spin(self)
+        # Loop over different temperatures with interval dT
         energy_ii = system_energy(self, grid_coordinates, grid_spins, spin_site_numbers)
-        
+                
         if self.algorithm == 'SF':
+            # Regular metropolis algorithm, here called single spin flip.
             for i, t in enumerate(range(self.time_steps)):
+                
+                # Energy and magnitization are stored every montecarlo time step
                 if t%self.MCS == 0:
                     energy_i[int(i/self.MCS)] = energy_ii 
-                    magnitization_i[int(i/self.MCS)] = abs(magnetisation(self, grid_spins))
-
+                    magnitization_i[int(i/self.MCS)] = magnetisation(self, grid_spins)
+                    
                 grid_spins, energy_ii = spin_flip_random(self, grid_coordinates, grid_spins, energy_ii)
                 
         elif self.algorithm == 'SW':
+            # Swendsen Wang algorithm.
             for i, t in enumerate(range(self.MC_steps)):
                 islands, grid_spins, cluster_flips = SW_algorithm(self, grid_coordinates, spin_site_numbers, grid_spins)
                 
                 energy_i[i] = system_energy(self, grid_coordinates, grid_spins, spin_site_numbers)
                 magnitization_i[i] = abs(magnetisation(self, grid_spins))
-                N_c = np.array([(len(x)) for x in islands]) # Extract island sizes from islands
-                khi_i[i] = 1/(self.L**4)*np.dot(N_c, N_c)
-                
-        else:
-            exit("This is no valid algorithm: please select SF or SW.")
         
+        # Store data for specific T, h
         energy[j] = np.mean(energy_i[-self.eq_data_points:])
         magnitization[j] = np.mean(magnitization_i[-self.eq_data_points:])
-        khi[j] = np.mean(khi_i[-self.eq_data_points:])
+        chi[j] = chi_calculate(self, magnitization_i)
+        c_v[j] = c_v_calculate(self, energy_i)
         T_total[j] = self.T 
         h_total[j] = self.h
 
+        # Increment T and h
         self.T = self.T + self.dT
         self.h = self.h + self.dh
-    
+        
+    # Store simulation restuls 
     results = SimpleNamespace(temperature = T_total,
                               magnetic_field = h_total,
-                              khi = khi,
+                              chi = chi,
                               energy = energy,
-                              magnitization = magnitization
+                              magnitization = magnitization,
+                              c_v = c_v
                              )
     
-    # One data set for debugging purposes 
-    data_set = SimpleNamespace(energy_i = energy_i,
-                              magnitization_i = magnitization_i,
-                              khi_i = khi_i
-                             )
+    return results, grid_coordinates
+
+# -----------------------------------------------------------------------------------------------------------------------
+# Input parameter checks
+# -----------------------------------------------------------------------------------------------------------------------
+
+def input_check(self):
+    '''This function check the input values for certain errors, 
+    and exits the program with a error message.
     
+    Parameters
+    ----------
+    self : NameSpace
+    contains all the simulation parameters
+    '''
+
+    if self.eq_data_points > self.MC_steps:
+        exit("More equilibrium data points then data points were selected.")
+       
+    if self.T + self.dT * self.T_steps < 0:
+        exit("Selected T, T_steps and dT such that the temperature stays positive.")
     
-    return results, grid_coordinates, data_set
+    if self.algorithm == 'SW' and (self.h != 0 or self.dh != 0):
+        exit("For SW the magnetic field should be zero.")
+        
+    if self.algorithm == 'SW' and self.L > 40:
+        exit("This cluster size will exceed recursion depth for the backtrack algorithm.")
+        
+    if self.algorithm != 'SW' and self.algorithm != 'SF':
+        exit("This is no valid algorithm: please select SF or SW.")
+
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Initialisation functions
@@ -139,23 +161,33 @@ def matrix_init(self):
            
     Returns
     -------
-    magnitization_total : 2D array (time_steps, 1)
+    magnitization : 2D array (T_steps, 1)
         initialised magnitization array
-    T_total : 2D array (time_steps, 1)
+    T_total : 2D array (T_steps, 1)
         initialised temperature array
-    h_total : 2D array (time_steps, 1)
+    h_total : 2D array (T_steps, 1)
         initialised magnetic field array
-    energy_total : 2D array (time_steps, 1)
+    energy : 2D array (T_steps, 1)
         initialised energy array
+    chi : 2D array (T_steps, 1)
+        initialised susceptibility array
+    c_v : 2D array (T_steps, 1)
+        initialised specific heat array
+     
         
     '''
     
-    magnitization_total = np.zeros([self.time_steps, 1])
-    T_total = np.zeros([self.time_steps, 1])
-    h_total = np.zeros([self.time_steps, 1])
-    energy_total = np.zeros([self.time_steps, 1])
+    magnitization = np.zeros([self.T_steps, 1])
+    T_total = np.zeros([self.T_steps, 1])
+    h_total = np.zeros([self.T_steps, 1])
+    energy = np.zeros([self.T_steps, 1])
+    chi = np.zeros([self.T_steps, 1])
+    c_v = np.zeros([self.T_steps, 1])
     
-    return magnitization_total, T_total, h_total, energy_total
+    energy_i = np.zeros([self.MC_steps, 1])
+    magnitization_i = np.zeros([self.MC_steps, 1])
+       
+    return magnitization, T_total, h_total, energy, chi, c_v, energy_i, magnitization_i
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Energy functions
@@ -310,35 +342,51 @@ def magnetisation(self, grid_spins):
         contains magnetisation of the system
         
     '''
-    magnetisation = np.sum(np.sum(grid_spins,axis=0))/self.spin_site_total_number
+    magnetisation = np.mean(grid_spins)
     
     return magnetisation
 
-
+def chi_calculate(self, magnitization_i):
+    '''Gives susceptibility of the system
+    
+    Parameters
+    ----------
+    self : NameSpace
+        contains all the simulation parameters
+    magnitization_i : 1D array (1, eq_data_points)
+        containing the past magnitizations for 
+        the required ammount of equilibrium data
+    
+    Returns
+    -------
+    chi : float
+        contains susceptibility of the system
+        
     '''
-def specific_heat(self, energy_total):
-    # Need to implement function which selects E from energy calculated such that the values in E are uncorrelated.
-    E = energy_total[]
     
-    # Computation of the specific heat and its error
-    f = self.beta**2*self.kb/self.spin_site_total_number
-    Cv = f*np.var(E)
-    Cv_std = f*std(E)
+    return (self.spin_site_total_number)*np.var(magnitization_i[-self.eq_data_points:])/((self.T)*(self.kb))
+             
+def c_v_calculate(self, energy_i):
+    '''Gives specific heat of the system
     
-    return Cv, Cv_std
-
-
-def magnetic_susceptibility(self, magnetisation):
-    # Need to implement function which selects m from magnetisation calculated such that the values in magnetisation are uncorrelated.
-    m = magnetisation[]
+    Parameters
+    ----------
+    self : NameSpace
+        contains all the simulation parameters
+    energy_i : 1D array (1, eq_data_points)
+        containing the past energies for 
+        the required ammount of equilibrium data
     
-    # Computation of the magnetic susceptibility and its error
-    f = self.beta*self.spin_site_total_number
-    chi = f*np.var(m)
-    chi_std  = f*std(m)
-    
-    return chi, chi_std
+    Returns
+    -------
+    c_v : float
+        contains specific heat of the system
+        
     '''
+    
+    return np.var(energy_i[-self.eq_data_points:])/((self.spin_site_total_number)*(self.T**2)*(self.kb))
+
+
 # -----------------------------------------------------------------------------------------------------------------------
 # Swendsen-Wang algorithm functions
 # -----------------------------------------------------------------------------------------------------------------------
