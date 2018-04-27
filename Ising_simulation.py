@@ -2,6 +2,7 @@ import numpy as np
 import numpy.random as rnd
 import matplotlib.pyplot as plt
 from types import SimpleNamespace
+from sys import exit
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Simulation
@@ -9,29 +10,67 @@ from types import SimpleNamespace
 def IM_sim(self):
     
     grid_coordinates, spin_site_numbers = grid_init(self)
-    grid_spins = assign_spin(self)
-    magnitization_total, T_total, h_total, energy_total = matrix_init(self)
-    energy_i = system_energy(self, grid_coordinates, grid_spins, spin_site_numbers)
+  
+    # magnitization_total, T_total, h_total, energy_total = matrix_init(self)
     
-    for i, t in enumerate(range(self.time_steps)):
-        energy_total[i] = energy_i    
-        magnitization_total[i] = magnetisation(self, grid_spins)
-        T_total[i] = self.T 
-        h_total[i] = self.h
-
-        grid_spins, energy_i = spin_flip_random(self, grid_coordinates, grid_spins, energy_i)
-        self.T += self.dT
-        self.h += self.dh
+    magnitization = np.zeros([self.T_steps, 1])
+    T_total = np.zeros([self.T_steps, 1])
+    h_total = np.zeros([self.T_steps, 1])
+    energy = np.zeros([self.T_steps, 1])
+    khi = np.zeros([self.T_steps, 1])
+    
+    energy_i = np.zeros([self.MC_steps, 1])
+    magnitization_i = np.zeros([self.MC_steps, 1])
+    khi_i = np.zeros([self.MC_steps, 1])
         
-    islands, grid_spins, cluster_flips = SW_algorithm(self, grid_coordinates, spin_site_numbers, grid_spins)
+    for j, temp in enumerate(range(self.T_steps)):
+        grid_spins = assign_spin(self)
+        energy_ii = system_energy(self, grid_coordinates, grid_spins, spin_site_numbers)
+        
+        if self.algorithm == 'SF':
+            for i, t in enumerate(range(self.time_steps)):
+                if t%self.MCS == 0:
+                    energy_i[int(i/self.MCS)] = energy_ii 
+                    magnitization_i[int(i/self.MCS)] = abs(magnetisation(self, grid_spins))
 
-    results = SimpleNamespace()
-    results.energy = energy_total
-    results.magnitization = magnitization_total
-    results.temperature = T_total
-    results.magnetic_field = h_total
+                grid_spins, energy_ii = spin_flip_random(self, grid_coordinates, grid_spins, energy_ii)
+                
+        elif self.algorithm == 'SW':
+            for i, t in enumerate(range(self.MC_steps)):
+                islands, grid_spins, cluster_flips = SW_algorithm(self, grid_coordinates, spin_site_numbers, grid_spins)
+                
+                energy_i[i] = system_energy(self, grid_coordinates, grid_spins, spin_site_numbers)
+                magnitization_i[i] = abs(magnetisation(self, grid_spins))
+                N_c = np.array([(len(x)) for x in islands]) # Extract island sizes from islands
+                khi_i[i] = 1/(self.L**4)*np.dot(N_c, N_c)
+                
+        else:
+            exit("This is no valid algorithm: please select SF or SW.")
+        
+        energy[j] = np.mean(energy_i[-self.eq_data_points:])
+        magnitization[j] = np.mean(magnitization_i[-self.eq_data_points:])
+        khi[j] = np.mean(khi_i[-self.eq_data_points:])
+        T_total[j] = self.T 
+        h_total[j] = self.h
+
+        self.T = self.T + self.dT
+        self.h = self.h + self.dh
     
-    return results, grid_coordinates, islands, cluster_flips
+    results = SimpleNamespace(temperature = T_total,
+                              magnetic_field = h_total,
+                              khi = khi,
+                              energy = energy,
+                              magnitization = magnitization
+                             )
+    
+    # One data set for debugging purposes 
+    data_set = SimpleNamespace(energy_i = energy_i,
+                              magnitization_i = magnitization_i,
+                              khi_i = khi_i
+                             )
+    
+    
+    return results, grid_coordinates, data_set
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Initialisation functions
