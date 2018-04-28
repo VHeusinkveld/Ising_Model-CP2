@@ -48,6 +48,8 @@ def IM_sim(self):
         c_v[j] = c_v_calculate(self, energy_i)
         T_total[j] = self.T 
         h_total[j] = self.h
+        
+        # Autocorrelation
 
         # Increment T and h
         self.T = self.T + self.dT
@@ -603,4 +605,20 @@ def visualize_islands(self, islands):
 # -----------------------------------------------------------------------------------------------------------------------
 # Functions under development
 # -----------------------------------------------------------------------------------------------------------------------
-
+# Autocorrelation function (Normalised)
+def Autocorrelation(X):
+    steps = X.shape[0]
+    
+    # Initialise autocorrelation array
+    C_AA = np.zeros((steps,), dtype=float)
+    
+    for t in range(steps):
+        C_AA[t] = np.mean(X[0:steps-1 - t]*X[t:steps-1]) - np.mean(X)**2 # From section 7.4 Jos' book and paper by Wolff (1998) (In Wolff it's numerator.)
+    
+    rho = C_AA/(np.mean(X**2)-np.mean(X)**2)
+    R_window = rho[steps-1]*rho[steps-1 - 1]/(rho[steps-1 - 1] - rho[steps-1])
+    rho_sum_window = rho.sum[0]
+    
+    tau = 1/2 + rho_sum_window + R_window
+    
+    return tau
