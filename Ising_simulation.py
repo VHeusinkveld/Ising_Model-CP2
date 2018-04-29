@@ -15,7 +15,7 @@ def IM_sim(self):
     # Initialization
     grid_spins = assign_spin(self)
     grid_coordinates, spin_site_numbers = grid_init(self)
-    magnitization, T_total, h_total, energy, chi, c_v, energy_i, magnitization_i = matrix_init(self)
+    magnetisation, T_total, h_total, energy, chi, c_v, energy_i, magnetisation_i, tau_energy, tau_magnetisation = matrix_init(self)
     
     # Simulation 
     for j, temp in enumerate(range(self.T_steps)):
@@ -26,10 +26,10 @@ def IM_sim(self):
             # Regular metropolis algorithm, here called single spin flip.
             for i, t in enumerate(range(self.time_steps)):
                 
-                # Energy and magnitization are stored every montecarlo time step
+                # Energy and magnetisation are stored every montecarlo time step
                 if t%self.MCS == 0:
                     energy_i[int(i/self.MCS)] = energy_ii 
-                    magnitization_i[int(i/self.MCS)] = magnetisation(self, grid_spins)
+                    magnetisation_i[int(i/self.MCS)] = magnetisation_f(self, grid_spins)
                     
                 grid_spins, energy_ii = spin_flip_random(self, grid_coordinates, grid_spins, energy_ii)
                 
@@ -39,13 +39,15 @@ def IM_sim(self):
                 islands, grid_spins, cluster_flips = SW_algorithm(self, grid_coordinates, spin_site_numbers, grid_spins)
                 
                 energy_i[i] = system_energy(self, grid_coordinates, grid_spins, spin_site_numbers)
-                magnitization_i[i] = abs(magnetisation(self, grid_spins))
+                magnetisation_i[i] = magnetisation_f(self, grid_spins)
         
         # Store data for specific T, h
         energy[j] = np.mean(energy_i[-self.eq_data_points:])
-        magnitization[j] = np.mean(magnitization_i[-self.eq_data_points:])
-        chi[j] = chi_calculate(self, magnitization_i)
+        magnetisation[j] = np.mean(abs(magnetisation_i[-self.eq_data_points:]))
+        chi[j] = chi_calculate(self, magnetisation_i)
         c_v[j] = c_v_calculate(self, energy_i)
+        tau_energy[j] = Autocorrelation(energy_i)
+        tau_magnetisation[j] = Autocorrelation(magnetisation_i)
         T_total[j] = self.T 
         h_total[j] = self.h
         
@@ -60,8 +62,10 @@ def IM_sim(self):
                               magnetic_field = h_total,
                               chi = chi,
                               energy = energy,
-                              magnitization = magnitization,
-                              c_v = c_v
+                              magnetisation = magnetisation,
+                              c_v = c_v,
+                              tau_energy = tau_energy,
+                              tau_magnetisation = tau_magnetisation
                              )
     
     return results, grid_coordinates
@@ -163,8 +167,8 @@ def matrix_init(self):
            
     Returns
     -------
-    magnitization : 2D array (T_steps, 1)
-        initialised magnitization array
+    magnetisation : 2D array (T_steps, 1)
+        initialised magnetisation array
     T_total : 2D array (T_steps, 1)
         initialised temperature array
     h_total : 2D array (T_steps, 1)
@@ -179,17 +183,19 @@ def matrix_init(self):
         
     '''
     
-    magnitization = np.zeros([self.T_steps, 1])
+    magnetisation = np.zeros([self.T_steps, 1])
     T_total = np.zeros([self.T_steps, 1])
     h_total = np.zeros([self.T_steps, 1])
     energy = np.zeros([self.T_steps, 1])
     chi = np.zeros([self.T_steps, 1])
     c_v = np.zeros([self.T_steps, 1])
+    tau_energy = np.zeros([self.T_steps, 1])
+    tau_magnetisation = np.zeros([self.T_steps, 1])
     
     energy_i = np.zeros([self.MC_steps, 1])
-    magnitization_i = np.zeros([self.MC_steps, 1])
+    magnetisation_i = np.zeros([self.MC_steps, 1])
        
-    return magnitization, T_total, h_total, energy, chi, c_v, energy_i, magnitization_i
+    return magnetisation, T_total, h_total, energy, chi, c_v, energy_i, magnetisation_i, tau_energy, tau_magnetisation
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Energy functions
@@ -328,7 +334,7 @@ def spin_flip_random(self, grid_coordinates, grid_spins, E_system):
 # -----------------------------------------------------------------------------------------------------------------------
 # System parameter functions
 # -----------------------------------------------------------------------------------------------------------------------
-def magnetisation(self, grid_spins):
+def magnetisation_f(self, grid_spins):
     '''Gives magnetisation of the system
     
     Parameters
@@ -348,15 +354,15 @@ def magnetisation(self, grid_spins):
     
     return magnetisation
 
-def chi_calculate(self, magnitization_i):
+def chi_calculate(self, magnetisation_i):
     '''Gives susceptibility of the system
     
     Parameters
     ----------
     self : NameSpace
         contains all the simulation parameters
-    magnitization_i : 1D array (1, eq_data_points)
-        containing the past magnitizations for 
+    magnetisation_i : 1D array (1, eq_data_points)
+        containing the past magnetisations for 
         the required ammount of equilibrium data
     
     Returns
@@ -366,7 +372,7 @@ def chi_calculate(self, magnitization_i):
         
     '''
     
-    return (self.spin_site_total_number)*np.var(magnitization_i[-self.eq_data_points:])/((self.T)*(self.kb))
+    return (self.spin_site_total_number)*np.var(magnetisation_i[-self.eq_data_points:])/((self.T)*(self.kb))
              
 def c_v_calculate(self, energy_i):
     '''Gives specific heat of the system
@@ -605,19 +611,36 @@ def visualize_islands(self, islands):
 # -----------------------------------------------------------------------------------------------------------------------
 # Functions under development
 # -----------------------------------------------------------------------------------------------------------------------
+import numpy as np
+
 # Autocorrelation function (Normalised)
 def Autocorrelation(X):
+    '''Calculates the integrated autocorrelation time approximation for a certain window
+    
+    Parameters
+    ----------
+    X : 2D array (N,1)
+        Succesive estimates X(i) of a physical quantity X from MC-process
+        
+    Returns
+    -------
+    tau : float
+        Integrated autocorrelation time approx for X
+        
+    '''
+    
     steps = X.shape[0]
     
     # Initialise autocorrelation array
     C_AA = np.zeros((steps,), dtype=float)
     
     for t in range(steps):
-        C_AA[t] = np.mean(X[0:steps-1 - t]*X[t:steps-1]) - np.mean(X)**2 # From section 7.4 Jos' book and paper by Wolff (1998) (In Wolff it's numerator.)
+        print(t)
+        C_AA[t] = np.mean(X[0:steps - t]*X[t:steps]) - np.mean(X)**2 # From section 7.4 Jos' book and paper by Wolff (1998) (In Wolff it's numerator.)
     
     rho = C_AA/(np.mean(X**2)-np.mean(X)**2)
     R_window = rho[steps-1]*rho[steps-1 - 1]/(rho[steps-1 - 1] - rho[steps-1])
-    rho_sum_window = rho.sum[0]
+    rho_sum_window = np.sum(rho, axis=0)
     
     tau = 1/2 + rho_sum_window + R_window
     
