@@ -42,31 +42,44 @@ def IM_sim(self):
                 magnetisation_i[i] = magnetisation_f(self, grid_spins)
         
         # Store data for specific T, h
+        btstrp_seq = btstrp_rnd_gen(self)
+        
         energy[j] = np.mean(energy_i[-self.eq_data_points:])
         magnetisation[j] = np.mean(abs(magnetisation_i[-self.eq_data_points:]))
-        chi[j] = chi_calculate(self, magnetisation_i)
-        c_v[j] = c_v_calculate(self, energy_i)
-        
-        def correlation_func(self, X):
-            if self.cor_cal:
-                cor_data = np.reshape(X[-self.eq_data_points:] - np.mean(X[-self.eq_data_points:]), (-1,))   
-                correlation = np.correlate(cor_data, cor_data, "full")
-            else:
-                correlation = 0
-                
-            return correlation  
+        chi[j] = np.reshape(chi_calculate(self, magnetisation_i), (-1,))
+        c_v[j] = c_v_calculate(self, energy_i, btstrp_seq)
         
         T_total[j] = self.T 
         h_total[j] = self.h
-        
-        # Autocorrelation
-
+       
         # Increment T and h
         self.T = self.T + self.dT
         self.h = self.h + self.dh
-    
-    cor_energy = correlation_func(self, energy_i)
-    cor_magnetisation = correlation_func(self, magnetisation_i)    
+        
+    ### WIP
+    ## Correlation chi
+    def correlation_chi(self, X, k):
+        if k > 0:
+            data = X[:-k]
+
+        else:
+            data = X
+
+        shift_data = X[k:]
+
+        Num = np.dot(shift_data, data)
+        Denom = np.dot(data, data)
+
+        return Num/Denom
+
+    cor_region = int(self.eq_data_points/4)
+    cor_fun_chi = np.zeros((cor_region,1))
+   
+    for k in range(cor_region):
+        cor_fun_chi[k] = correlation_chi(self, chi[j], k)
+
+
+    ### end of WIP    
     
     # Store simulation restuls 
     results = SimpleNamespace(temperature = T_total,
@@ -75,8 +88,7 @@ def IM_sim(self):
                               energy = energy,
                               magnetisation = magnetisation,
                               c_v = c_v,
-                              cor_energy = cor_energy,
-                              cor_magnetisation = cor_magnetisation
+                              cor_fun_chi = cor_fun_chi
                              )
     
     return results, grid_coordinates
@@ -200,8 +212,8 @@ def matrix_init(self):
     T_total = np.zeros([self.T_steps, 1])
     h_total = np.zeros([self.T_steps, 1])
     energy = np.zeros([self.T_steps, 1])
-    chi = np.zeros([self.T_steps, 1])
-    c_v = np.zeros([self.T_steps, 1])
+    chi = np.zeros([self.T_steps, self.MC_steps])
+    c_v = np.zeros([self.T_steps, 2])
     
     energy_i = np.zeros([self.MC_steps, 1])
     magnetisation_i = np.zeros([self.MC_steps, 1])
@@ -345,6 +357,15 @@ def spin_flip_random(self, grid_coordinates, grid_spins, E_system):
 # -----------------------------------------------------------------------------------------------------------------------
 # System parameter functions
 # -----------------------------------------------------------------------------------------------------------------------
+
+        
+
+def btstrp_rnd_gen(self):
+    '''Generates sequence of random data points that can be used in the bootstrap algorithm.'''
+    N = self.eq_data_points - 1
+    a = np.round(np.random.random(self.bs_trials*N).reshape(self.bs_trials,N)*N)
+    return a.astype(int)
+    
 def magnetisation_f(self, grid_spins):
     '''Gives magnetisation of the system
     
@@ -382,28 +403,39 @@ def chi_calculate(self, magnetisation_i):
         contains susceptibility of the system
         
     '''
-    
-    return (self.spin_site_total_number)*np.var(magnetisation_i[-self.eq_data_points:])/((self.T)*(self.kb))
-             
-def c_v_calculate(self, energy_i):
+    return (magnetisation_i**2)/self.L**4
+    #return (self.spin_site_total_number)*np.var(magnetisation_i[-self.eq_data_points:])/((self.T)*(self.kb))
+
+def c_v_calculate(self, energy_i, btstrp_seq):
     '''Gives specific heat of the system
-    
-    Parameters
-    ----------
-    self : NameSpace
-        contains all the simulation parameters
-    energy_i : 1D array (1, eq_data_points)
-        containing the past energies for 
-        the required ammount of equilibrium data
-    
-    Returns
-    -------
-    c_v : float
-        contains specific heat of the system
-        
-    '''
-    
-    return np.var(energy_i[-self.eq_data_points:])/((self.spin_site_total_number)*(self.T**2)*(self.kb))
+
+        Parameters
+        ----------
+        self : NameSpace
+            contains all the simulation parameters
+        energy_i : 1D array (1, eq_data_points)
+            containing the past energies for 
+            the required ammount of equilibrium data
+
+        Returns
+        -------
+        c_v : float
+            contains specific heat of the system
+
+        '''
+    data_eq = energy_i[-self.eq_data_points:]
+    c_v_temp = np.zeros((self.bs_trials, 1), dtype=float)
+    for j in range(self.bs_trials):        
+        data_sample = data_eq[btstrp_seq[j]]
+        c_v_temp[j] = np.var(data_sample)/((self.spin_site_total_number)*(self.T**2)*(self.kb))
+
+    c_v_ave = np.mean(c_v_temp)
+    c_v_sig = np.var(c_v_temp)
+
+    return c_v_ave, c_v_sig
+
+
+
 
 
 # -----------------------------------------------------------------------------------------------------------------------
