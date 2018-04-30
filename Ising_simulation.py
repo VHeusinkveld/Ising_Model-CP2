@@ -15,7 +15,7 @@ def IM_sim(self):
     # Initialization
     grid_spins = assign_spin(self)
     grid_coordinates, spin_site_numbers = grid_init(self)
-    magnetisation, T_total, h_total, energy, chi, c_v, energy_i, magnetisation_i, tau_energy, tau_magnetisation = matrix_init(self)
+    magnetisation, T_total, h_total, energy, chi, c_v, energy_i, magnetisation_i = matrix_init(self)
     
     # Simulation 
     for j, temp in enumerate(range(self.T_steps)):
@@ -46,8 +46,16 @@ def IM_sim(self):
         magnetisation[j] = np.mean(abs(magnetisation_i[-self.eq_data_points:]))
         chi[j] = chi_calculate(self, magnetisation_i)
         c_v[j] = c_v_calculate(self, energy_i)
-        tau_energy[j] = Autocorrelation(energy_i)
-        tau_magnetisation[j] = Autocorrelation(magnetisation_i)
+        
+        def correlation_func(self, X):
+            if self.cor_cal:
+                cor_data = np.reshape(X[-self.eq_data_points:] - np.mean(X[-self.eq_data_points:]), (-1,))   
+                correlation = np.correlate(cor_data, cor_data, "full")
+            else:
+                correlation = 0
+                
+            return correlation  
+        
         T_total[j] = self.T 
         h_total[j] = self.h
         
@@ -56,7 +64,10 @@ def IM_sim(self):
         # Increment T and h
         self.T = self.T + self.dT
         self.h = self.h + self.dh
-        
+    
+    cor_energy = correlation_func(self, energy_i)
+    cor_magnetisation = correlation_func(self, magnetisation_i)    
+    
     # Store simulation restuls 
     results = SimpleNamespace(temperature = T_total,
                               magnetic_field = h_total,
@@ -64,8 +75,8 @@ def IM_sim(self):
                               energy = energy,
                               magnetisation = magnetisation,
                               c_v = c_v,
-                              tau_energy = tau_energy,
-                              tau_magnetisation = tau_magnetisation
+                              cor_energy = cor_energy,
+                              cor_magnetisation = cor_magnetisation
                              )
     
     return results, grid_coordinates
@@ -98,7 +109,9 @@ def input_check(self):
         
     if self.algorithm != 'SW' and self.algorithm != 'SF':
         exit("This is no valid algorithm: please select SF or SW.")
-
+    
+    if self.cor_cal != True and self.cor_cal != False:
+        exit("cor_calc should be set to True or False")
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Initialisation functions
@@ -189,13 +202,11 @@ def matrix_init(self):
     energy = np.zeros([self.T_steps, 1])
     chi = np.zeros([self.T_steps, 1])
     c_v = np.zeros([self.T_steps, 1])
-    tau_energy = np.zeros([self.T_steps, 1])
-    tau_magnetisation = np.zeros([self.T_steps, 1])
     
     energy_i = np.zeros([self.MC_steps, 1])
     magnetisation_i = np.zeros([self.MC_steps, 1])
        
-    return magnetisation, T_total, h_total, energy, chi, c_v, energy_i, magnetisation_i, tau_energy, tau_magnetisation
+    return magnetisation, T_total, h_total, energy, chi, c_v, energy_i, magnetisation_i
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Energy functions
