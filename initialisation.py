@@ -122,8 +122,9 @@ def matrix_init(self):
     T_total = np.zeros([self.T_steps, 1])
     h_total = np.zeros([self.T_steps, 1])
     energy = np.zeros([self.T_steps, 1])
-    chi = np.zeros([self.T_steps, self.MC_steps])
+    chi = np.zeros([self.T_steps, 2])
     c_v = np.zeros([self.T_steps, 2])
+    
     
     energy_i = np.zeros([self.MC_steps, 1])
     magnetisation_i = np.zeros([self.MC_steps, 1])

@@ -31,7 +31,7 @@ def m_calculate(self, grid_spins):
     
     return magnetisation
 
-def chi_calculate(self, grid_spins):
+def chi_calculate(self, magnetisation):
     '''Gives susceptibility of the system
     
     Parameters
@@ -48,7 +48,7 @@ def chi_calculate(self, grid_spins):
         contains susceptibility of the system
         
     '''
-    return (np.sum(grid_spins)**2)/self.L**4
+    return (magnetisation)**2
     #return (self.spin_site_total_number)*np.var(magnetisation_i[-self.eq_data_points:])/((self.T)*(self.kb))
 
 def c_v_calculate(self, energy_i, btstrp_seq):

@@ -4,33 +4,11 @@ import numpy.random as rnd
 from types import SimpleNamespace
 from importlib import reload
 
-''' turn this on later when development is done, hence no reload needed
 from initialisation import *
 from energies import *
 from swendsen_wang import *
 from metropolis import *
 from quantities import *
-'''
-
-import quantities
-reload(quantities)
-from quantities import *
-
-import swendsen_wang
-reload(swendsen_wang)
-from swendsen_wang import *
-
-import initialisation
-reload(initialisation)
-from initialisation import *
-
-import metropolis
-reload(metropolis)
-from metropolis import *
-
-import energies
-reload(energies)
-from energies import *
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Simulation
@@ -58,7 +36,6 @@ def IM_sim(self):
                 if t%self.MCS == 0:
                     energy_i[int(i/self.MCS)] = energy_ii 
                     magnetisation_i[int(i/self.MCS)] = m_calculate(self, grid_spins)
-                    chi_i[int(i/self.MCS)] = chi_calculate(self, grid_spins)
                 
                 grid_spins, energy_ii = spin_flip_random(self, grid_coordinates, grid_spins, energy_ii)
                 
@@ -72,17 +49,18 @@ def IM_sim(self):
                     magnetisation_i[i] = abs(m_calculate(self, grid_spins))                   
                 else:
                     magnetisation_i[i] = m_calculate(self, grid_spins)
-                   
-                chi_i[i] = chi_calculate(self, grid_spins)
-                
+                     
         # Store data for specific T, h
-        btstrp_seq = btstrp_rnd_gen(self)
-
-        
         energy[j] = np.mean(energy_i[-self.eq_data_points:])
+        
         magnetisation[j, 0] = np.mean(magnetisation_i[-self.eq_data_points:])
         magnetisation[j, 1] = np.var(abs(magnetisation_i[-self.eq_data_points:]))
-        chi[j] = np.mean(chi_i)
+        
+        chi_i = chi_calculate(self, magnetisation_i)
+        chi[j, 0] = np.mean(chi_i[-self.eq_data_points:])
+        chi[j, 1] = np.var(chi_i[-self.eq_data_points:])
+        
+        btstrp_seq = btstrp_rnd_gen(self)
         c_v[j] = c_v_calculate(self, energy_i, btstrp_seq)
         
         T_total[j] = self.T 
