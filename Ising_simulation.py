@@ -54,13 +54,10 @@ def IM_sim(self):
         energy[j] = np.mean(energy_i[-self.eq_data_points:])
         
         magnetisation[j, 0] = np.mean(magnetisation_i[-self.eq_data_points:])
-        magnetisation[j, 1] = np.var(abs(magnetisation_i[-self.eq_data_points:]))
-        
-        chi_i = chi_calculate(self, magnetisation_i)
-        chi[j, 0] = np.mean(chi_i[-self.eq_data_points:])
-        chi[j, 1] = np.var(chi_i[-self.eq_data_points:])
+        magnetisation[j, 1] = np.std(abs(magnetisation_i[-self.eq_data_points:]))
         
         btstrp_seq = btstrp_rnd_gen(self)
+        chi[j] = chi_calculate(self, magnetisation_i, btstrp_seq)
         c_v[j] = c_v_calculate(self, energy_i, btstrp_seq)
         
         T_total[j] = self.T 
@@ -86,11 +83,11 @@ def IM_sim(self):
 
         return Num/Denom
 
-    cor_region = int(self.eq_data_points/4)
-    cor_fun_chi = np.zeros((cor_region,1))
+    #cor_region = int(self.eq_data_points/4)
+    #cor_fun_chi = np.zeros((cor_region,1))
    
-    for k in range(cor_region):
-        cor_fun_chi[k] = correlation_chi(self, chi[j], k)
+    #for k in range(cor_region):
+    #    cor_fun_chi[k] = correlation_chi(self, chi[j], k)
 
 
     ### end of WIP    
@@ -102,7 +99,7 @@ def IM_sim(self):
                               energy = energy,
                               magnetisation = magnetisation,
                               c_v = c_v,
-                              cor_fun_chi = cor_fun_chi,
+                              #cor_fun_chi = cor_fun_chi,
                               grid_spins = grid_spins,
                               grid_coordinates = grid_coordinates
                              )
