@@ -45,19 +45,16 @@ def IM_sim(self):
                 islands, grid_spins, cluster_flips = SW_algorithm(self, grid_coordinates, spin_site_numbers, grid_spins)
                 
                 energy_i[i] = system_energy(self, grid_coordinates, grid_spins, spin_site_numbers)
-                if self.T < self.T_c:
-                    magnetisation_i[i] = abs(m_calculate(self, grid_spins))                   
-                else:
-                    magnetisation_i[i] = m_calculate(self, grid_spins)
+                magnetisation_i[i] = m_calculate(self, grid_spins)
                      
         # Store data for specific T, h
         energy[j] = np.mean(energy_i[-self.eq_data_points:])
-        
-        magnetisation[j, 0] = np.mean(magnetisation_i[-self.eq_data_points:])
-        magnetisation[j, 1] = np.std(abs(magnetisation_i[-self.eq_data_points:]))
+        m_squared = (magnetisation_i[-self.eq_data_points:])**2
+        magnetisation[j, 0] = np.mean(m_squared)
+        magnetisation[j, 1] = np.std(m_squared)
         
         btstrp_seq = btstrp_rnd_gen(self)
-        chi[j] = chi_calculate(self, magnetisation_i, btstrp_seq)
+        chi[j] = chi_calculate(self, abs(magnetisation_i), btstrp_seq)
         c_v[j] = c_v_calculate(self, energy_i, btstrp_seq)
         
         T_total[j] = self.T 
