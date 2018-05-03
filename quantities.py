@@ -11,7 +11,7 @@ def btstrp_rnd_gen(self):
     a = np.round(np.random.random(self.bs_trials*N).reshape(self.bs_trials,N)*N)
     return a.astype(int)
     
-def m_calculate(self, grid_spins):
+def m_calculate(self, m_squared, btstrp_seq):
     '''Gives magnetisation of the system
     
     Parameters
@@ -27,9 +27,18 @@ def m_calculate(self, grid_spins):
         contains magnetisation of the system
         
     '''
-    magnetisation = np.mean(grid_spins)
     
-    return magnetisation
+    data_eq = m_squared[-self.eq_data_points:]
+    m_temp = np.zeros((self.bs_trials, 1), dtype=float)
+    
+    for j in range(self.bs_trials):        
+        data_sample = data_eq[btstrp_seq[j]]        
+        m_temp[j] = np.mean(data_sample)
+
+    m_ave = np.mean(m_temp)
+    m_sig = np.std(m_temp)
+    
+    return m_ave, m_sig    
 
 def chi_calculate(self, magnetisation, btstrp_seq):
     '''Gives susceptibility of the system

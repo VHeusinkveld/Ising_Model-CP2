@@ -35,7 +35,7 @@ def IM_sim(self):
                 # Energy and magnetisation are stored every montecarlo time step
                 if t%self.MCS == 0:
                     energy_i[int(i/self.MCS)] = energy_ii 
-                    magnetisation_i[int(i/self.MCS)] = m_calculate(self, grid_spins)
+                    magnetisation_i[int(i/self.MCS)] = np.mean(grid_spins)
                 
                 grid_spins, energy_ii = spin_flip_random(self, grid_coordinates, grid_spins, energy_ii)
                 
@@ -45,15 +45,14 @@ def IM_sim(self):
                 islands, grid_spins, cluster_flips = SW_algorithm(self, grid_coordinates, spin_site_numbers, grid_spins)
                 
                 energy_i[i] = system_energy(self, grid_coordinates, grid_spins, spin_site_numbers)
-                magnetisation_i[i] = m_calculate(self, grid_spins)
+                magnetisation_i[i] = np.mean(grid_spins)
                      
         # Store data for specific T, h
         energy[j] = np.mean(energy_i[-self.eq_data_points:])
         m_squared = (magnetisation_i[-self.eq_data_points:])**2
-        magnetisation[j, 0] = np.mean(m_squared)
-        magnetisation[j, 1] = np.std(m_squared)
-        
+
         btstrp_seq = btstrp_rnd_gen(self)
+        magnetisation[j] = m_calculate(self, m_squared, btstrp_seq)
         chi[j] = chi_calculate(self, abs(magnetisation_i), btstrp_seq)
         c_v[j] = c_v_calculate(self, energy_i, btstrp_seq)
         

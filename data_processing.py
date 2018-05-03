@@ -128,8 +128,8 @@ def plot_func(self, results, fig_dir, identifier, save):
     x = results.temperature
     y = results.magnetisation[:,0]
     y_err = results.magnetisation[:,1]
-
-    plt.errorbar(x, y, yerr=y_err, fmt='x', markersize=6, capsize=4)
+    plt.plot(x, y, 'x', markersize=6)
+    #plt.errorbar(x, y, yerr=y_err, fmt='x', markersize=6, capsize=4)
     plt.xlabel('$\mathrm{k_B T/J}$', fontsize=18)
     plt.ylabel('$ m^{2} $', fontsize=18)    
     plt.tight_layout()
