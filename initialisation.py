@@ -33,7 +33,10 @@ def input_check(self):
         exit("This is no valid algorithm: please select SF or SW.")
     
     if self.cor_cal != True and self.cor_cal != False:
-        exit("cor_calc should be set to True or False")
+        exit("cor_calc should be set to True or False.")
+        
+    if self.T_steps%1 !=:
+        exit("Temperature steps should be an integer.")
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Initialisation functions
@@ -102,32 +105,41 @@ def matrix_init(self):
            
     Returns
     -------
-    magnetisation : 2D array (T_steps, 1)
-        initialised magnetisation array
+
     T_total : 2D array (T_steps, 1)
         initialised temperature array
     h_total : 2D array (T_steps, 1)
         initialised magnetic field array
-    energy : 2D array (T_steps, 1)
+    energy : 2D array (T_steps, 2)
         initialised energy array
-    chi : 2D array (T_steps, 1)
+    chi : 2D array (T_steps, 2)
         initialised susceptibility array
-    c_v : 2D array (T_steps, 1)
-        initialised specific heat array
-     
+    c_v : 2D array (T_steps, 2)
+        initialised specific eat array
+    magnetisation : 2D array (T_steps, 2)
+        initialised magnetisation array  
+        
+    energy_i : 2D array (MC_steps, 1)
+        initialised energy_i array
+    magnetisation_i : 2D array (MC_steps, 1)
+        initialised magnetisation_i array  
+    chi_i : 2D array (MC_steps, 1)
+        initialised susceptibility_i array    
         
     '''
     
-    magnetisation = np.zeros([self.T_steps, 2])
+    
     T_total = np.zeros([self.T_steps, 1])
     h_total = np.zeros([self.T_steps, 1])
     energy = np.zeros([self.T_steps, 1])
+    magnetisation = np.zeros([self.T_steps, 2])
     chi = np.zeros([self.T_steps, 2])
     c_v = np.zeros([self.T_steps, 2])
+    int_cor_time = np.zeros([self.T_steps, 2])
     
     
     energy_i = np.zeros([self.MC_steps, 1])
     magnetisation_i = np.zeros([self.MC_steps, 1])
     chi_i = np.zeros([self.MC_steps, 1])
        
-    return magnetisation, T_total, h_total, energy, chi, c_v, energy_i, magnetisation_i, chi_i
+    return T_total, h_total, energy, chi, c_v, magnetisation, int_cor_time, energy_i, magnetisation_i, chi_i

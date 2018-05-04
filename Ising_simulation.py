@@ -21,7 +21,7 @@ def IM_sim(self):
     # Initialization
     grid_spins = assign_spin(self)
     grid_coordinates, spin_site_numbers = grid_init(self)
-    magnetisation, T_total, h_total, energy, chi, c_v, energy_i, magnetisation_i, chi_i = matrix_init(self)
+    T_total, h_total, energy, chi, c_v, magnetisation, int_cor_time, energy_i, magnetisation_i, chi_i = matrix_init(self)
     
     # Simulation 
     for j, temp in enumerate(range(self.T_steps)):
@@ -49,12 +49,13 @@ def IM_sim(self):
                      
         # Store data for specific T, h
         energy[j] = np.mean(energy_i[-self.eq_data_points:])
-        m_squared = (magnetisation_i[-self.eq_data_points:])**2
+        m_squared = (magnetisation_i)**2
 
         btstrp_seq = btstrp_rnd_gen(self)
         magnetisation[j] = m_calculate(self, m_squared, btstrp_seq)
         chi[j] = chi_calculate(self, abs(magnetisation_i), btstrp_seq)
         c_v[j] = c_v_calculate(self, energy_i, btstrp_seq)
+        #int_cor_time[j] = integrated_cor_time(self, energy_i, btstrp_seq)
         
         T_total[j] = self.T 
         h_total[j] = self.h
@@ -63,31 +64,6 @@ def IM_sim(self):
         self.T = self.T + self.dT
         self.h = self.h + self.dh
         
-    ### WIP
-    ## Correlation chi
-    def correlation_chi(self, X, k):
-        if k > 0:
-            data = X[:-k]
-
-        else:
-            data = X
-
-        shift_data = X[k:]
-
-        Num = np.dot(shift_data, data)
-        Denom = np.dot(data, data)
-
-        return Num/Denom
-
-    #cor_region = int(self.eq_data_points/4)
-    #cor_fun_chi = np.zeros((cor_region,1))
-   
-    #for k in range(cor_region):
-    #    cor_fun_chi[k] = correlation_chi(self, chi[j], k)
-
-
-    ### end of WIP    
-    
     # Store simulation restuls 
     results = SimpleNamespace(temperature = T_total,
                               magnetic_field = h_total,
@@ -95,7 +71,7 @@ def IM_sim(self):
                               energy = energy,
                               magnetisation = magnetisation,
                               c_v = c_v,
-                              #cor_fun_chi = cor_fun_chi,
+                              int_cor_time = int_cor_time,
                               grid_spins = grid_spins,
                               grid_coordinates = grid_coordinates
                              )
@@ -109,6 +85,31 @@ def IM_sim(self):
 # Functions under development
 # -----------------------------------------------------------------------------------------------------------------------
 import numpy as np
+import matplotlib.pyplot as plt
+
+def integrated_cor_time(self, data, btstrp_seq):
+        
+    data_eq = np.reshape(data[-self.eq_data_points:],(-1, ))
+    int_cor_time_temp = np.zeros((self.bs_trials, 1), dtype=float)
+        
+    for j in range(self.bs_trials):  
+        data_sample_1 = data_eq[btstrp_seq[j,int(np.floor(self.eq_data_points/4)):int(np.floor(self.eq_data_points*3/4))]] 
+        data_sample_1 -= np.mean(data_sample_1)
+        
+        data_sample_2 = data_eq[btstrp_seq[j]] 
+        data_sample_2 -= np.mean(data_sample_2)
+        
+        corr = np.correlate(data_sample_1, data_sample_2, 'valid')
+        corr = corr/max(corr)
+        
+        int_cor_time_temp[j] = sum(1/2*corr)
+    
+    int_cor_time_ave = np.mean(int_cor_time_temp)
+    int_cor_time_sig = np.std(int_cor_time_temp)
+ 
+    return int_cor_time_ave, int_cor_time_sig
+
+
 
 # Autocorrelation function (Normalised)
 def Autocorrelation(X):

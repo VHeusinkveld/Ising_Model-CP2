@@ -166,5 +166,6 @@ def save_data(self, results, data_dir, identifier):
     
     data_name = data_dir + 'saved_data_' + identifier + '_' + self.algorithm + '_' + str(self.eq_data_points)
     np.savez(data_name, temperature = results.temperature, magnetic_field = results.magnetic_field, 
-             c_v = results.c_v, chi = results.chi, magnetisation = results.magnetisation)
+             c_v = results.c_v, chi = results.chi, magnetisation = results.magnetisation,
+            sim_time = results.sim_time)
     print('Data is saved to: ' + data_dir)
