@@ -31,11 +31,8 @@ def input_check(self):
         
     if self.algorithm != 'SW' and self.algorithm != 'SF':
         exit("This is no valid algorithm: please select SF or SW.")
-    
-    if self.cor_cal != True and self.cor_cal != False:
-        exit("cor_calc should be set to True or False.")
         
-    if self.T_steps%1 !=:
+    if self.T_steps%1 != 0:
         exit("Temperature steps should be an integer.")
 
 # -----------------------------------------------------------------------------------------------------------------------

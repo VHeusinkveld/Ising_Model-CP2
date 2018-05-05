@@ -55,7 +55,7 @@ def IM_sim(self):
         magnetisation[j] = m_calculate(self, m_squared, btstrp_seq)
         chi[j] = chi_calculate(self, abs(magnetisation_i), btstrp_seq)
         c_v[j] = c_v_calculate(self, energy_i, btstrp_seq)
-        #int_cor_time[j] = integrated_cor_time(self, energy_i, btstrp_seq)
+        #int_cor_time[j] = integrated_cor_time(self, energy_i)
         
         T_total[j] = self.T 
         h_total[j] = self.h
@@ -87,22 +87,23 @@ def IM_sim(self):
 import numpy as np
 import matplotlib.pyplot as plt
 
-def integrated_cor_time(self, data, btstrp_seq):
+def integrated_cor_time(self, data):
         
     data_eq = np.reshape(data[-self.eq_data_points:],(-1, ))
-    int_cor_time_temp = np.zeros((self.bs_trials, 1), dtype=float)
-        
-    for j in range(self.bs_trials):  
-        data_sample_1 = data_eq[btstrp_seq[j,int(np.floor(self.eq_data_points/4)):int(np.floor(self.eq_data_points*3/4))]] 
-        data_sample_1 -= np.mean(data_sample_1)
-        
-        data_sample_2 = data_eq[btstrp_seq[j]] 
-        data_sample_2 -= np.mean(data_sample_2)
-        
-        corr = np.correlate(data_sample_1, data_sample_2, 'valid')
-        corr = corr/max(corr)
-        
-        int_cor_time_temp[j] = sum(1/2*corr)
+    #int_cor_time_temp = np.zeros((self.bs_trials, 1), dtype=float)
+   
+    data_sample = data_eq
+    data_sample -= np.mean(data_sample)
+
+    corr = np.correlate(data_sample, data_sample, 'same')
+    corr = corr/max(corr)
+    
+    middle = int(np.floor(self.eq_data_points/2))
+    i = np.argmax(corr[middle:] < 0)
+
+    corr = corr[middle + 1 - i:middle + i]
+    
+    int_cor_time_temp = sum(1/2*corr)    
     
     int_cor_time_ave = np.mean(int_cor_time_temp)
     int_cor_time_sig = np.std(int_cor_time_temp)
