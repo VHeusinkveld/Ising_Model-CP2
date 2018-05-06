@@ -1,8 +1,13 @@
 # Ising Model Simulaton
 ## Structure
-*Execute_simulation.ipnb*:
+*Execute_simulation.ipynb*:
 Contains the setup of the simulation, this function should be run if a 
 simulation is needed to be performed. 
+
+*Data_processing.ipynb*:
+Contains all the more complex data processing that is not carried out by running 
+a simulatin. Among which plots from multipla data sets, fitting for critical 
+exponents, and simulation performance.
 
 *Ising_simulation.py*: 
 Contains all the functions used. Among which, the metropolis and Swendsen-Wang 
