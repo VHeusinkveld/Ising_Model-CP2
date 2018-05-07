@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
+from scipy.optimize import curve_fit
 
 # -----------------------------------------------------------------------------------------------------------------------
-# Fit functions critical exponents
+# Fit functions critical exponents and performance
 # -----------------------------------------------------------------------------------------------------------------------
 
 def f_chi(tau, factor, a):
@@ -14,6 +15,23 @@ def f_cv(tau, factor):
 
 def f_magnetisation(tau, factor, a):
     return factor*tau**a #(No minus at tau, as there is already taken care of in fitting function)
+
+def f_z(L, x, c):
+    return L**(x) + c
+
+def fit_funct_z(f_z, L, Y, err, bounds):
+    popt, pcov = curve_fit(f_z, L, Y, sigma = err, bounds = bounds)
+    fit_err = np.sqrt(np.diag(pcov))
+    return popt, fit_err
+
+def f_sim(x, a, b, c):
+    return a*x**(b) + c
+
+def fit_funct_sim(f_sim, X, Y):
+    popt, pcov = curve_fit(f_sim, X, Y)
+    fit_err = np.sqrt(np.diag(pcov))
+    return popt, fit_err
+
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Plot functions
