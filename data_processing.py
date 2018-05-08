@@ -4,6 +4,36 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 # -----------------------------------------------------------------------------------------------------------------------
+# Data loading functions
+# -----------------------------------------------------------------------------------------------------------------------
+def load_data(data_dir, quantity):
+    '''Loads all data from data_dir and assigns data of specific quantity to variables
+    
+    Parameters
+    ----------
+    data_dir : datafile ~.npz
+        contains the 'temperature' 'magnetic_field' 'c_v' 'chi' 'magnetisation' arrays
+    quantity : str
+        quantity of interest
+    
+    Returns
+    -------
+    xdata : 1D array
+        temperatures from data_dir
+    ydata : 1D array
+        quantity from data_dir
+    y_err : 1D array
+        standard deviation of ydata entries        
+    '''
+    
+    data = np.load(data_dir)
+    xdata = data['temperature'].reshape(np.shape(data['temperature'])[0])
+    ydata = data[quantity][:,0]
+    y_err = data[quantity][:,1]
+    
+    return xdata, ydata, y_err
+
+# -----------------------------------------------------------------------------------------------------------------------
 # Fit functions critical exponents and performance
 # -----------------------------------------------------------------------------------------------------------------------
 
@@ -171,6 +201,193 @@ def plot_func(self, results, fig_dir, identifier, save):
     
     if save:
         print('Figures are saved to: ' + figure_directory)
+
+def plot_function(data_dir, quantity, LOG):
+    '''Gives plot of the loaded data in loglog or normal scale. X-axis is
+    translated with critical temperature T_c. (Done to get idea for fitting.)
+    
+    Parameters
+    ----------
+    data_dir : datafile ~.npz
+        contains the 'temperature' 'magnetic_field' 'c_v' 'chi' arrays
+    quantity : Str
+        string which specifies which physical quantity must be fitted
+    LOG : boolean
+        Turns loglog plot on or off
+        
+    Returns
+    -------
+    plot of data provided in loglog or normal scale
+    '''
+    
+    xdata, ydata, y_err = load_data(data_dir, quantity)
+    
+    T_c = crit_temp(data_dir)
+    
+    #if quantity == 'magnetisation':
+    
+    if LOG:
+        plt.loglog(xdata[(xdata-T_c)>0]-T_c, ydata[(xdata-T_c)>0], 'bx')
+        plt.loglog(abs(xdata[(xdata-T_c)<0]-T_c), ydata[(xdata-T_c)<0], 'rx')
+        plt.grid()
+    else:
+        plt.plot(xdata[(xdata-T_c)>0]-T_c, ydata[(xdata-T_c)>0], 'bx')
+        plt.plot(xdata[(xdata-T_c)<0]-T_c, ydata[(xdata-T_c)<0], 'rx')
+        
+    plt.tight_layout()
+    plt.show()
+    
+# -----------------------------------------------------------------------------------------------------------------------
+# Fit function for critical exponents & T_c function needed for fitting
+# -----------------------------------------------------------------------------------------------------------------------
+
+def crit_temp(data_dir):
+    '''Gives the transition/critical temperature from the measured specific
+    heat in terms of k_B*T/J.
+    
+    Parameters
+    ----------
+    data_dir : datafile ~.npz
+        contains the 'temperature' 'magnetic_field' 'c_v' 'chi' arrays
+    
+    Returns
+    -------
+    T_c: float
+        the critical temperature    
+    '''
+    
+    data = np.load(data_dir)
+    T = data['temperature'].reshape(np.shape(data['temperature'])[0])
+    c_v = data['c_v'][:,0]
+    T_c = T[c_v==max(c_v)]
+    
+    return T_c
+
+def fit_function(data_dir, quantity, fit_range, plotYN, LOG):
+    '''Gives the best fit to quantity with non-linear least squares
+    
+    Parameters
+    ----------
+    data_dir : datafile ~.npz
+        contains the 'temperature' 'magnetic_field' 'c_v' 'chi' arrays
+    quantity : Str
+        string which specifies which physical quantity must be fitted
+    fit_range: sequence
+        [LB, UB], the lower and upper boundary of the interval to be
+        fitted w.r.t T_c
+    plotYN : boolean
+        turns plotting of fit and original function on or off
+    LOG : boolean
+        Turns loglog plot on or off
+              
+    Returns
+    -------
+    popt: 1D array
+        Optimal values for parameters so sum of the squared residuals is minimized
+    fit_err : 1D array
+        Standard deviation of the optimal values for the parameters
+    xdata_fit_plot : 1D array
+        Temperature values for plot in het fit domain
+    ydata_fit_plot : 1D array
+        Quantitiy values for plot in fit domain determined by applying the fitted curve
+    '''
+    
+    # Initialisation of plot design and parameters
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+    plt.rc('font', size=18)
+    
+    # Import needed functions from data_processing.py
+    from data_processing import crit_temp, load_data, plot_function
+       
+    # Loading data and general functions (and generate transition temperature (T_c))
+    from scipy.optimize import curve_fit
+    
+    data = np.load(data_dir)
+    xdata = data['temperature'].reshape(np.shape(data['temperature'])[0])
+    ydata = data[quantity][:,0]
+    y_err = data[quantity][:,1]
+    
+    T_c = crit_temp(data_dir)
+    
+    # Fitting
+    ## Selecting data for fit
+    indices = np.where(((xdata-T_c)>fit_range[0]) & ((xdata-T_c)<fit_range[1]))
+    xdata_fit = xdata[indices] - T_c
+    ydata_fit = ydata[indices]
+    y_err_fit = y_err[indices]
+
+    ## Select fitting model
+    if quantity == 'magnetisation':
+        from data_processing import f_magnetisation as f
+        plt.ylabel(r'$\langle \mathrm{m^2} \rangle$', fontsize=18)
+    if quantity == 'c_v':
+        from data_processing import f_cv as f
+        plt.ylabel('$\mathrm{C_v}$', fontsize=18)
+    if quantity == 'chi':
+        from data_processing import f_chi as f
+        plt.ylabel('$\mathrm{\chi}$', fontsize=18)
+    
+    if quantity == 'magnetisation':
+        ## Actual fitting
+        popt, pcov = curve_fit(f, abs(xdata_fit), ydata_fit, sigma=y_err_fit)
+        fit_err = np.sqrt(np.diag(pcov))
+
+        # Generate fit plot data
+        xdata_fit_plot = np.linspace(xdata_fit[0], xdata_fit[-1], 1000)
+        ydata_fit_plot = f(abs(xdata_fit_plot), *popt)
+                
+        # Plotting original function and fit
+        if plotYN:
+
+            # Actual plotting
+            if LOG:
+                # Actual plotting
+                plt.loglog(xdata[(xdata-T_c)>0]-T_c, ydata[(xdata-T_c)>0], 'bx', markersize=7)
+                plt.loglog(abs(xdata[(xdata-T_c)<0]-T_c), ydata[(xdata-T_c)<0], 'rx', markersize=7)
+                plt.loglog(abs(xdata_fit_plot),ydata_fit_plot, 'k-', alpha = 0.9, label = 'Fit -')
+                plt.xlabel('$\mathrm{k_B |T-T_c|/J}$')
+                plt.grid()
+            else:
+                plt.plot(xdata[(xdata-T_c)>0]-T_c, ydata[(xdata-T_c)>0], 'bx', markersize=7)
+                plt.plot((xdata[(xdata-T_c)<0]-T_c), ydata[(xdata-T_c)<0], 'rx', markersize=7)
+                plt.plot((xdata_fit_plot),ydata_fit_plot, 'k-', alpha = 0.9, label = 'Fit -')
+                plt.xlabel('$\mathrm{k_B (T-T_c)/J}$')
+                
+            plt.tight_layout()
+            #plt.show()
+
+        return popt, fit_err, xdata_fit_plot, ydata_fit_plot
+        
+    else:
+        ## Actual fitting
+        popt, pcov = curve_fit(f, abs(xdata_fit), ydata_fit, sigma=y_err_fit)
+        fit_err = np.sqrt(np.diag(pcov))
+
+        # Generate fit plot data
+        xdata_fit_plot = np.linspace(xdata_fit[0], xdata_fit[-1], 1000)
+        ydata_fit_plot = f(abs(xdata_fit_plot), *popt)
+        
+        # Plotting original function and fit
+        if plotYN:
+            if LOG:
+                # Actual plotting
+                plt.loglog(xdata[(xdata-T_c)>0]-T_c, ydata[(xdata-T_c)>0], 'bx', markersize=7)
+                plt.loglog(abs(xdata[(xdata-T_c)<0]-T_c), ydata[(xdata-T_c)<0], 'rx', markersize=7)
+                plt.loglog(abs(xdata_fit_plot),ydata_fit_plot, 'k-', alpha = 0.9, label = 'Fit +')
+                plt.xlabel('$\mathrm{k_B |T-T_c|/J}$')
+                plt.grid()
+                
+            else:
+                plt.plot(xdata[(xdata-T_c)>0]-T_c, ydata[(xdata-T_c)>0], 'bx', markersize=7)
+                plt.plot((xdata[(xdata-T_c)<0]-T_c), ydata[(xdata-T_c)<0], 'rx', markersize=7)
+                plt.plot((xdata_fit_plot),ydata_fit_plot, 'k-', alpha = 0.9, label = 'Fit +')
+                plt.xlabel('$\mathrm{k_B (T-T_c)/J}$')
+            
+            plt.tight_layout()
+            #plt.show()
+
+        return popt, fit_err, xdata_fit_plot, ydata_fit_plot
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Save data
