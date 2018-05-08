@@ -348,41 +348,6 @@ def plot_func(self, results, fig_dir, identifier, save):
     if save:
         print('Figures are saved to: ' + figure_directory)
 
-def plot_function(data_dir, quantity, LOG):
-    '''Gives plot of the loaded data in loglog or normal scale. X-axis is
-    translated with critical temperature T_c. (Done to get idea for fitting.)
-    
-    Parameters
-    ----------
-    data_dir : datafile ~.npz
-        contains the 'temperature' 'magnetic_field' 'c_v' 'chi' arrays
-    quantity : Str
-        string which specifies which physical quantity must be fitted
-    LOG : boolean
-        Turns loglog plot on or off
-        
-    Returns
-    -------
-    plot of data provided in loglog or normal scale
-    '''
-    
-    xdata, ydata, y_err = load_data(data_dir, quantity)
-    
-    T_c = crit_temp(data_dir)
-    
-    #if quantity == 'magnetisation':
-    
-    if LOG:
-        plt.loglog(xdata[(xdata-T_c)>0]-T_c, ydata[(xdata-T_c)>0], 'bx')
-        plt.loglog(abs(xdata[(xdata-T_c)<0]-T_c), ydata[(xdata-T_c)<0], 'rx')
-        plt.grid()
-    else:
-        plt.plot(xdata[(xdata-T_c)>0]-T_c, ydata[(xdata-T_c)>0], 'bx')
-        plt.plot(xdata[(xdata-T_c)<0]-T_c, ydata[(xdata-T_c)<0], 'rx')
-        
-    plt.tight_layout()
-    plt.show()
-    
 # -----------------------------------------------------------------------------------------------------------------------
 # Fit function for critical exponents & T_c function needed for fitting
 # -----------------------------------------------------------------------------------------------------------------------
