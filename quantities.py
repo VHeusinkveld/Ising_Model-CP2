@@ -6,7 +6,21 @@ import numpy.random as rnd
 # -----------------------------------------------------------------------------------------------------------------------
 
 def btstrp_rnd_gen(self):
-    '''Generates sequence of random data points that can be used in the bootstrap algorithm.'''
+    '''Generates sequence of random data points that can be used in the bootstrap algorithm.
+     
+    Parameters
+    ----------
+    self : NameSpace
+        contains all the simulation parameters
+    
+    Returns
+    -------
+    :2D array (trials, eq_data_points)
+        contains random sequence of samples that can be taken from the data, 
+        for the ammount of bootstrap trials that are required 
+    
+    '''
+    
     N = self.eq_data_points - 1
     a = np.round(np.random.random(self.bs_trials*N).reshape(self.bs_trials,N)*N)
     return a.astype(int)
@@ -20,11 +34,16 @@ def m_calculate(self, m_squared, btstrp_seq):
         contains all the simulation parameters
     grid_spins : 2D array (L, L)
         containing al the spin values within the grid
+    btstrp_seq: 2D array (trials, eq_data_points)
+        contains random sequence of samples that can be taken from the data, 
+        for the ammount of bootstrap trials that are required
     
     Returns
     -------
-    magnetisation : float
-        contains magnetisation of the system
+    m_ave : float
+        contains the average magnetisation of the system
+    m_sig : float
+        contains the sigma of the magnetisation of the system 
         
     '''
     

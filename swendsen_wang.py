@@ -45,11 +45,6 @@ def SW_algorithm(self, grid_coordinates, spin_site_numbers, grid_spins):
         spin_site_y = grid_coordinates[1][i]
         cluster, grid_spins = back_track(self, spin_site_x, spin_site_y, bonds, not_visited, cluster, grid_spins, flip_cluster)
 
-        #if len(cluster) >= self.spin_site_total_number/2 and flip_cluster < 0:
-        #    for element in cluster:
-        #        grid_spins[element[0], element[1]] = grid_spins[element[0], element[1]] * -1
-        #        flip_cluster = -1 * flip_cluster
-        
         if cluster != []:
             islands.append(cluster)
             cluster_flips.append(flip_cluster)                
