@@ -2,7 +2,6 @@ import numpy as np
 import numpy.random as rnd
 from sys import exit
 
-
 # -----------------------------------------------------------------------------------------------------------------------
 # Input parameter checks
 # -----------------------------------------------------------------------------------------------------------------------
@@ -14,7 +13,7 @@ def input_check(self):
     Parameters
     ----------
     self : NameSpace
-    contains all the simulation parameters
+        contains all the simulation parameters
     '''
 
     if self.eq_data_points > self.MC_steps:
@@ -79,9 +78,9 @@ def grid_init(self):
     Returns
     -------
     grid_coordinates : mesh
+        conains all combinations of the x and y coordinates of the spins
     spin_site_numbers : range (spin_site_total_number)
-        containing integer counters up to size of spin_site_total_number
-        
+        containing integer counters up to size of spin_site_total_number 
     '''
     
     grid_x, grid_y = [range(self.L), range(self.L)]
@@ -125,18 +124,15 @@ def matrix_init(self):
         
     '''
     
-    
     T_total = np.zeros([self.T_steps, 1])
     h_total = np.zeros([self.T_steps, 1])
     energy = np.zeros([self.T_steps, 1])
     magnetisation = np.zeros([self.T_steps, 2])
     chi = np.zeros([self.T_steps, 2])
-    c_v = np.zeros([self.T_steps, 2])
-    int_cor_time = np.zeros([self.T_steps, 2])
-    
+    c_v = np.zeros([self.T_steps, 2])    
     
     energy_i = np.zeros([self.MC_steps, 1])
     magnetisation_i = np.zeros([self.MC_steps, 1])
     chi_i = np.zeros([self.MC_steps, 1])
        
-    return T_total, h_total, energy, chi, c_v, magnetisation, int_cor_time, energy_i, magnetisation_i, chi_i
+    return T_total, h_total, energy, chi, c_v, magnetisation, energy_i, magnetisation_i, chi_i

@@ -38,26 +38,153 @@ def load_data(data_dir, quantity):
 # -----------------------------------------------------------------------------------------------------------------------
 
 def f_chi(tau, factor, a):
+    '''Trial fitting function magnetic susceptibility critical exponent.  
+    
+    Parameters
+    ----------
+    tau : 1D array 
+        x data as input for the function 
+    factor : float
+        function parameter 
+    a : float
+        function parameter 
+        
+    Returns
+    -------
+    : function value 
+        
+    ''' 
     return factor*tau**a
 
 def f_cv(tau, factor):
+    '''Trial fitting function specific heat critical exponent.  
+    
+    Parameters
+    ----------
+    tau : 1D array 
+        x data as input for the function 
+    factor : float
+        function parameter 
+        
+    Returns
+    -------
+    : function value 
+        
+    ''' 
     return factor*np.log(tau)
 
 def f_magnetisation(tau, factor, a):
+    '''Trial fitting function magnetisation critical exponent.  
+    
+    Parameters
+    ----------
+    tau : 1D array 
+        x data as input for the function 
+    factor : float
+        function parameter 
+    a : float
+        function parameter 
+        
+    Returns
+    -------
+    : function value 
+        
+    '''    
     return factor*tau**a #(No minus at tau, as there is already taken care of in fitting function)
 
 def f_z(L, x, c):
+    '''Trial fitting function critical dynamical exponent.  
+    
+    Parameters
+    ----------
+    L : 1D array 
+        x data as input for the function 
+    x : float
+        function parameter 
+    c : float
+        function parameter 
+        
+    Returns
+    -------
+    : function value 
+        
+    '''    
     return L**(x) + c
 
 def fit_funct_z(f_z, L, Y, err, bounds):
+    '''Function used for fitting to simulation perforance.  
+    
+    Parameters
+    ----------
+    f_z : func 
+        the function to which should be fitted 
+    L : 1D array
+        contains x coordinates of the data
+    Y : 1D array
+        contains y coordinates of the data
+    err : 1D array
+        contains y errors
+    bounds: 1D array
+        contains bounds on the fitting parameters
+        
+    Returns
+    -------
+    popt: 1D array (2,)
+        contains fitted values for the parameters 
+        in the fit functions
+    fit_err: 1D array (2,)
+        corresponding errors to the fit values
+        
+    '''
+    
     popt, pcov = curve_fit(f_z, L, Y, sigma = err, bounds = bounds)
     fit_err = np.sqrt(np.diag(pcov))
     return popt, fit_err
 
 def f_sim(x, a, b, c):
+    '''Trial fitting function simulation behaviour.  
+    
+    Parameters
+    ----------
+    x : 1D array 
+        x data as input for the function 
+    a : float
+        function parameter 
+    b : float
+        function parameter 
+    c : float
+        function parameter 
+        
+    Returns
+    -------
+    : function value 
+        
+    '''     
+    
     return a*x**(b) + c
 
 def fit_funct_sim(f_sim, X, Y):
+    '''Function used for fitting to simulation perforance.  
+    
+    Parameters
+    ----------
+    f_sim : func 
+        the function to which should be fitted 
+    X : 1D array
+        contains x coordinates of the data
+    Y : 1D array
+        contains y coordinates of the data
+        
+    Returns
+    -------
+    popt: 1D array (2,)
+        contains fitted values for the parameters 
+        in the fit functions
+    fit_err: 1D array (2,)
+        corresponding errors to the fit values
+        
+    '''
+    
     popt, pcov = curve_fit(f_sim, X, Y)
     fit_err = np.sqrt(np.diag(pcov))
     return popt, fit_err
@@ -74,7 +201,13 @@ def grid_plot(self, results, fig_dir, identifier, save):
     self : NameSpace
         contains all the simulation parameters
     results : NameSpace
-        contains all the simulation results        
+        contains all the simulation results
+    fig_dir : str
+        directory where figures should be stored
+    identifier : str
+        identifier of the data set, is used in filename 
+    save : bool
+        determines if files should be saved
     '''
     
     figure_directory = fig_dir
@@ -97,14 +230,21 @@ def grid_plot(self, results, fig_dir, identifier, save):
     
 
 def visualize_islands(self, results, fig_dir, identifier, save):
-    '''Gives plot of the clusters in the grid
+    '''Gives plot of the clusters in the grid. 
     
     Parameters
     ----------
     self : NameSpace
         contains all the simulation parameters
     results : NameSpace
-        contains all the simulation results        
+        contains all the simulation results  
+    fig_dir : str
+        directory where figures should be stored
+    identifier : str
+        identifier of the data set, is used in filename 
+    save : bool
+        determines if files should be saved
+        
     '''
     if self.algorithm == 'SW':
 
@@ -145,14 +285,20 @@ def visualize_islands(self, results, fig_dir, identifier, save):
         plt.close()
     
 def plot_func(self, results, fig_dir, identifier, save):
-    '''Plots all required quantities
+    '''Plots all required quantities, m, c_v, chi.
     
     Parameters
     ----------
     self : NameSpace
         contains all the simulation parameters
     results : NameSpace
-        contains all the simulation results        
+        contains all the simulation results  
+    fig_dir : str
+        directory where figures should be stored
+    identifier : str
+        identifier of the data set, is used in filename 
+    save : bool
+        determines if files should be saved
     '''
 
     figure_directory = fig_dir
@@ -394,13 +540,14 @@ def fit_function(data_dir, quantity, fit_range, plotYN, LOG):
 # -----------------------------------------------------------------------------------------------------------------------
         
 def save_data(self, results, data_dir, identifier):
-    '''Saves most imported data to a npz file
+    '''Saves most imported data to a npz file. This file
+    can contain multiple numpy arrays.
     
     Example code of how to read data from a npzfile
        {
-           npzfile = np.load(sim.data_dir + 'name.npz')
+           npzfile = np.load(<filename>)
            npzfile.files
-           npzfile['temperature']
+           npzfile[<quantity>]
        }
     
     Parameters

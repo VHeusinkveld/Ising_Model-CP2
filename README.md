@@ -1,23 +1,35 @@
 # Ising Model Simulaton
 ## Structure
-*Execute_simulation.ipynb*:
-Contains the setup of the simulation, this function should be run if a 
-simulation is needed to be performed. 
+*Report/*
+Contains the report.
+
+*exported_data/*
+Contains data exported from simulation runs.
+
+*exported_figs/*
+Contains figures generated from simulation runs and from more advanced 
+data processing.
 
 *Data_processing.ipynb*:
 Contains all the more complex data processing that is not carried out by running 
-a simulatin. Among which plots from multipla data sets, fitting for critical 
+a simulation. Among which plots from multiple data sets, fitting for critical 
 exponents, and simulation performance.
+
+*Execute_simulation.ipynb*: *MAIN FILE*
+ Contains the setup of the simulation, this function should be run if a 
+simulation is needed to be performed. 
 
 *Ising_simulation.py*: 
 Contains all the functions used. Among which, the metropolis and Swendsen-Wang 
 algorithm.
 
 *data_processing.py*:
-Contains plotting and data saving functions.
+Contains simple plotting and data saving functions. Also contains fitting 
+functions which are used in the data_processing notebook.
 
 *energies.py*:
-Contains functions concerning energy of the system and that of single spin flips.
+Contains functions concerning energy of the system and that of single spin 
+flips.
 
 *intialisation.py*:
 Contains initialisaton functions, checking input en declaring arrays.
