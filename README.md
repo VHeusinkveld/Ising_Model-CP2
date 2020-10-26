@@ -1,4 +1,9 @@
 # Ising Model Simulaton
+
+[![Simulation movie](https://img.youtube.com/vi/TaodjBGw8mc/0.jpg)](https://www.youtube.com/watch?v=TaodjBGw8mc)
+
+## [Report](Report/Final_CompPhys_Report_2.pdf)
+
 ## Structure
 *Report/*
 Contains the report.
